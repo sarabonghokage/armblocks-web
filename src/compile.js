@@ -93,13 +93,25 @@ function appendBlock(block, out, depth) {
   }
 }
 
+function positionValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 export function compileWorkspace(json) {
   const blocks = json?.blocks?.blocks;
-  const start = Array.isArray(blocks) ? blocks.find((block) => block?.type === 'arm_start') : null;
-  if (!start) return { ok: false, error: '시작 블록이 없습니다' };
+  const starts = Array.isArray(blocks)
+    ? blocks.filter((block) => block?.type === 'arm_start').sort((a, b) => {
+      const y = positionValue(a.y) - positionValue(b.y);
+      return y || positionValue(a.x) - positionValue(b.x);
+    })
+    : [];
+  if (!starts.length) return { ok: false, error: '시작 블록이 없습니다' };
   const out = [];
-  const error = appendChain(childBlock(start.inputs?.DO), out, 0);
-  if (error) return { ok: false, error };
+  for (const start of starts) {
+    const error = appendChain(childBlock(start.inputs?.DO), out, 0);
+    if (error) return { ok: false, error };
+  }
   if (out.length > 1000) return { ok: false, error: '프로그램이 너무 깁니다' };
   return { ok: true, bytes: new Uint8Array(out) };
 }
