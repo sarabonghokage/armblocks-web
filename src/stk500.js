@@ -76,7 +76,20 @@ async function sync(io) {
       await discardPending(io);
       await io.write(new Uint8Array([0x30, 0x20]));
       const got = await io.read(2, 200);
-      if (matches(got, [INSYNC, OK])) return;
+      if (matches(got, [INSYNC, OK])) {
+        await io.sleep(60);
+        await discardPending(io);
+        await io.write(new Uint8Array([0x30, 0x20]));
+        const confirm = await io.read(2, 300);
+        if (matches(confirm, [INSYNC, OK])) {
+          await io.sleep(30);
+          await discardPending(io);
+          return;
+        }
+        last = `예상과 다른 응답 ${hexOf(confirm)}`;
+        await discardPending(io);
+        continue;
+      }
       last = `예상과 다른 응답 ${hexOf(got)}`;
       await discardPending(io);
     } catch (error) {
@@ -125,7 +138,9 @@ export async function flashImage(io, image, onProgress) {
   } catch (error) {
     throw new Error(`서명 확인 실패: ${error.message}`);
   }
-  if (!matches(sign, [INSYNC, 0x1e, 0x95, 0x0f, OK])) throw new Error('ATmega328P 보드가 아닙니다');
+  if (!matches(sign, [INSYNC, 0x1e, 0x95, 0x0f, OK])) {
+    throw new Error(`ATmega328P 보드가 아닙니다 (받은 값: ${hexOf(sign)})`);
+  }
   await exchange(io, [0x50, 0x20], [INSYNC, OK], '프로그래밍 모드');
   const pages = Math.ceil(image.length / PAGE);
   for (let page = 0; page < pages; page += 1) {

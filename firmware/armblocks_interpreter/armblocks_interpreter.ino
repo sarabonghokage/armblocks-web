@@ -599,6 +599,10 @@ void runPass() {
       return;
     }
     while (!cancelMotion && running && !stopped && !loading && pc < codeLen) executeOne();
+    if (!cancelMotion && running && !stopped && !loading && pc >= codeLen) {
+      running = false;
+      Serial.print(F("DONE\r\n"));
+    }
   } while (cancelMotion && running && !stopped && !loading && !knobMode);
 }
 

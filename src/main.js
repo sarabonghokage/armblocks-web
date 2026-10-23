@@ -201,6 +201,7 @@ function onLine(line) {
   const text = line.trim();
   if (!text) return;
   appendLog(text);
+  if (text === 'DONE') setStatus('프로그램 실행이 끝났습니다.');
   if (waiter && (text.startsWith('ERR') || text.startsWith('STOPPED') || waiter.accept(text))) {
     const current = waiter;
     waiter = null;
